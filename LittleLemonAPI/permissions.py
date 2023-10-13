@@ -7,7 +7,7 @@ class CanManageMenuItemPermission(BasePermission):
         if request.method == 'GET':
             return True
         # Allow POST requests only for users in the "manager" group
-        if request.method == 'POST' and request.user.groups.filter(name='manager').exists():
+        if request.user.groups.filter(name='manager').exists():
             return True
         # Deny PUT, PATCH, and DELETE for all users
         return False
