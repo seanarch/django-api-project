@@ -39,6 +39,22 @@ class ManagerUsersView(generics.ListCreateAPIView):
     queryset = User.objects.filter(groups__name='manager')
     serializer_class = UserSerializer
 
+    permission_classes = [CanManageMenuItemPermission]
+
+class SingleManagerView(generics.RetrieveUpdateDestroyAPIView): 
+    queryset = User.objects.filter(groups__name='manager')
+    serializer_class = UserSerializer
+
+    permission_classes = [CanManageMenuItemPermission]
+
 class DeliveryUsersView(generics.ListCreateAPIView):
     queryset = User.objects.filter(groups__name='delivery')
     serializer_class = UserSerializer
+
+    permission_classes = [CanManageMenuItemPermission]
+
+class SingleDeliveryUsersView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = User.objects.filter(groups__name='delivery')
+    serializer_class = UserSerializer
+
+    permission_classes = [CanManageMenuItemPermission]
