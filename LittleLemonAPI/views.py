@@ -1,21 +1,12 @@
 from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated, BasePermission
+from .permissions import CanManageMenuItemPermission
 from .models import MenuItem, Category
 from .serializers import MenuItemSerializer, CategorySerializer
 
-class CanPostMenuItemPermission(BasePermission): 
-    def has_permission(self, request, view): 
-        return request.user.groups.filter(name='manager').exists()
-    
-class CanPostCategoryPermission(BasePermission): 
-    def has_object_permission(self, request, view, obj):
-        return request.user.groups.filter(name='manager').exists() 
  
 class CategoriesView(generics.ListCreateAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-
-    permission_classes = [IsAuthenticated, CanPostMenuItemPermission]
 
 class MenuItemsView(generics.ListCreateAPIView): 
     queryset = MenuItem.objects.all() 
@@ -24,11 +15,21 @@ class MenuItemsView(generics.ListCreateAPIView):
     # filterset_fields = [] 
     # search_fields = [] 
 
-    permission_classes = [IsAuthenticated, CanPostMenuItemPermission]
+    def get_queryset(self):
+        queryset = MenuItem.objects.all()
+        category = self.request.query_params.get('category', None)
+        if category:
+            queryset = queryset.filter(category=category)
+        return queryset
+    
+    permission_classes = [CanManageMenuItemPermission]
 
-class SingleCateItemView(generics.RetrieveUpdateDestroyAPIView): 
-    queryset = Category.objects.all() 
-    serializer_class = CategorySerializer     
+# class SingleCateItemView(generics.RetrieveUpdateDestroyAPIView): 
+#     queryset = Category.objects.all() 
+#     serializer_class = CategorySerializer     
 
-    permission_classes = [IsAuthenticated, CanPostMenuItemPermission]
- 
+class SingleMenuItemView(generics.RetrieveUpdateDestroyAPIView): 
+    queryset = MenuItem.objects.all() 
+    serializer_class = MenuItemSerializer  
+
+    permission_classes = [CanManageMenuItemPermission]
