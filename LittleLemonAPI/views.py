@@ -1,7 +1,8 @@
 from rest_framework import generics
+from django.contrib.auth.models import User
 from .permissions import CanManageMenuItemPermission
 from .models import MenuItem, Category
-from .serializers import MenuItemSerializer, CategorySerializer
+from .serializers import MenuItemSerializer, CategorySerializer, UserSerializer
 
  
 class CategoriesView(generics.ListCreateAPIView):
@@ -33,3 +34,11 @@ class SingleMenuItemView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = MenuItemSerializer  
 
     permission_classes = [CanManageMenuItemPermission]
+
+class ManagerUsersView(generics.ListCreateAPIView):
+    queryset = User.objects.filter(groups__name='manager')
+    serializer_class = UserSerializer
+
+class DeliveryUsersView(generics.ListCreateAPIView):
+    queryset = User.objects.filter(groups__name='delivery')
+    serializer_class = UserSerializer
