@@ -32,26 +32,29 @@ class SingleMenuItemView(generics.RetrieveUpdateDestroyAPIView):
 
     permission_classes = [CanManageMenuItemPermission]
 
-
-class ManagerUsersView(generics.ListCreateAPIView):
-    queryset = User.objects.filter(groups__name='manager')
+class AssignUserToGroupView(generics.ListCreateAPIView):
     serializer_class = UserSerializer
-    permission_classes = [CanManageMenuItemPermission]
 
-    def create(self, request, *args, **kwargs):
+    def assign_user_to_group(self, request, group_name):
         username = request.data.get('username')
 
         try:
             user = User.objects.get(username=username)
-            manager_group, _ = Group.objects.get_or_create(name='manager')
-            user.groups.add(manager_group)
+            group, _ = Group.objects.get_or_create(name=group_name)
+            user.groups.add(group)
 
-            # Serialize the user data
             user_serializer = UserSerializer(user)
-
             return Response(user_serializer.data, status=status.HTTP_201_CREATED)
+
         except User.DoesNotExist:
             return Response({'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+class ManagerUsersView(AssignUserToGroupView):
+    queryset = User.objects.filter(groups__name='manager')
+    permission_classes = [CanManageMenuItemPermission]
+
+    def create(self, request, *args, **kwargs):
+        return self.assign_user_to_group(request, 'manager')
 
 
 class SingleManagerView(generics.RetrieveUpdateDestroyAPIView): 
@@ -60,27 +63,14 @@ class SingleManagerView(generics.RetrieveUpdateDestroyAPIView):
 
     permission_classes = [CanManageMenuItemPermission]
 
-class DeliveryUsersView(generics.ListCreateAPIView):
+class DeliveryUsersView(AssignUserToGroupView):
     queryset = User.objects.filter(groups__name='delivery')
-    serializer_class = UserSerializer
     permission_classes = [DeliveryGroupPermission]
 
-    def create(self, request, *args, **kwargs): 
-        username = request.data.get('username') 
-
-        try:
-            user = User.objects.get(username=username)
-            manager_group, _ = Group.objects.get_or_create(name='delivery')
-            user.groups.add(manager_group)
-
-            # Serialize the user data
-            user_serializer = UserSerializer(user)
-
-            return Response(user_serializer.data, status=status.HTTP_201_CREATED)
-        except User.DoesNotExist:
-            return Response({'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    def create(self, request, *args, **kwargs):
+        return self.assign_user_to_group(request, 'delivery')
         
-        
+
 class SingleDeliveryUsersView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.filter(groups__name='delivery')
     serializer_class = UserSerializer
