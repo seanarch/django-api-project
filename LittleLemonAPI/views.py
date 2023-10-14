@@ -1,4 +1,5 @@
 from rest_framework import generics, status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.contrib.auth.models import User, Group
 from .permissions import CanManageMenuItemPermission, DeliveryGroupPermission
@@ -77,6 +78,15 @@ class SingleDeliveryUsersView(generics.RetrieveUpdateDestroyAPIView):
 
     permission_classes = [DeliveryGroupPermission]
 
-class CartView(generics.ListCreateAPIView): 
+class CartView(generics.ListCreateAPIView, generics.DestroyAPIView): 
     queryset = Cart.objects.all() 
     serializer_class = CartSerializer 
+    permission_classes = [IsAuthenticated] 
+
+    def destroy(self, request, *args, **kwargs):
+        # Handle DELETE request to delete all cart items created by the current user
+        Cart.objects.filter(user=request.user).delete()
+        return self.list(request, *args, **kwargs)
+
+    def get_object(self):
+        return Cart.objects.filter(user=self.request.user)
