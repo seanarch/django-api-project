@@ -11,3 +11,9 @@ class CanManageMenuItemPermission(BasePermission):
             return True
         # Deny PUT, PATCH, and DELETE for all users
         return False
+
+class DeliveryGroupPermission(BasePermission): 
+    def has_permission(self, request, view):
+        if request.user.groups.filter(name='manager').exists():
+            return True
+        return False
