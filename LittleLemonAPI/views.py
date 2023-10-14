@@ -2,8 +2,8 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from django.contrib.auth.models import User, Group
 from .permissions import CanManageMenuItemPermission, DeliveryGroupPermission
-from .models import MenuItem, Category
-from .serializers import MenuItemSerializer, CategorySerializer, UserSerializer 
+from .models import MenuItem, Category, Cart
+from .serializers import MenuItemSerializer, CategorySerializer, UserSerializer, CartSerializer 
 
  
 class CategoriesView(generics.ListCreateAPIView):
@@ -76,3 +76,7 @@ class SingleDeliveryUsersView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserSerializer
 
     permission_classes = [DeliveryGroupPermission]
+
+class CartView(generics.ListCreateAPIView): 
+    queryset = Cart.objects.all() 
+    serializer_class = CartSerializer 
