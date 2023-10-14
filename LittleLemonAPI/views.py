@@ -1,6 +1,7 @@
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
 from django.contrib.auth.models import User, Group
 from .permissions import CanManageMenuItemPermission, DeliveryGroupPermission
 from .models import MenuItem, Category, Cart
@@ -10,6 +11,8 @@ from .serializers import MenuItemSerializer, CategorySerializer, UserSerializer,
 class CategoriesView(generics.ListCreateAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+
+    throttle_classes = [UserRateThrottle, AnonRateThrottle] 
 
 class MenuItemsView(generics.ListCreateAPIView): 
     queryset = MenuItem.objects.all() 
@@ -26,15 +29,18 @@ class MenuItemsView(generics.ListCreateAPIView):
         return queryset
     
     permission_classes = [CanManageMenuItemPermission] 
+    throttle_classes = [UserRateThrottle, AnonRateThrottle] 
 
 class SingleMenuItemView(generics.RetrieveUpdateDestroyAPIView): 
     queryset = MenuItem.objects.all() 
     serializer_class = MenuItemSerializer  
 
     permission_classes = [CanManageMenuItemPermission]
+    throttle_classes = [UserRateThrottle, AnonRateThrottle] 
 
 class AssignUserToGroupView(generics.ListCreateAPIView):
     serializer_class = UserSerializer
+    throttle_classes = [UserRateThrottle] 
 
     def assign_user_to_group(self, request, group_name):
         username = request.data.get('username')
@@ -49,10 +55,12 @@ class AssignUserToGroupView(generics.ListCreateAPIView):
 
         except User.DoesNotExist:
             return Response({'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        
 
 class ManagerUsersView(AssignUserToGroupView):
     queryset = User.objects.filter(groups__name='manager')
     permission_classes = [CanManageMenuItemPermission]
+    throttle_classes = [UserRateThrottle]
 
     def create(self, request, *args, **kwargs):
         return self.assign_user_to_group(request, 'manager')
@@ -61,11 +69,13 @@ class ManagerUsersView(AssignUserToGroupView):
 class SingleManagerView(generics.RetrieveUpdateDestroyAPIView): 
     queryset = User.objects.filter(groups__name='manager')
     serializer_class = UserSerializer
+    throttle_classes = [UserRateThrottle] 
 
     permission_classes = [CanManageMenuItemPermission]
 
 class DeliveryUsersView(AssignUserToGroupView):
     queryset = User.objects.filter(groups__name='delivery')
+    throttle_classes = [UserRateThrottle] 
     permission_classes = [DeliveryGroupPermission]
 
     def create(self, request, *args, **kwargs):
@@ -75,12 +85,13 @@ class DeliveryUsersView(AssignUserToGroupView):
 class SingleDeliveryUsersView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.filter(groups__name='delivery')
     serializer_class = UserSerializer
-
+    throttle_classes = [UserRateThrottle] 
     permission_classes = [DeliveryGroupPermission]
 
 class CartView(generics.ListCreateAPIView, generics.DestroyAPIView): 
     queryset = Cart.objects.all() 
     serializer_class = CartSerializer 
+    throttle_classes = [UserRateThrottle, AnonRateThrottle] 
     permission_classes = [IsAuthenticated] 
 
     def destroy(self, request, *args, **kwargs):
