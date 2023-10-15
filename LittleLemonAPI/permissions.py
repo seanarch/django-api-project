@@ -14,6 +14,6 @@ class CanManageMenuItemPermission(BasePermission):
 
 class DeliveryGroupPermission(BasePermission): 
     def has_permission(self, request, view):
-        if request.user.groups.filter(name='manager').exists():
+        if request.user.groups.filter(name='delivery').exists():
             return True
         return False

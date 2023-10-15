@@ -6,8 +6,7 @@ from django.contrib.auth.models import User, Group
 from .permissions import CanManageMenuItemPermission, DeliveryGroupPermission
 from .models import MenuItem, Category, Cart, Order, OrderItem
 from .serializers import MenuItemSerializer, CategorySerializer, UserSerializer, CartSerializer, OrderSerializer, OrderItemSerializer 
-from decimal import Decimal
-from datetime import date
+from decimal import Decimal 
 
  
 class CategoriesView(generics.ListCreateAPIView):
@@ -143,7 +142,7 @@ class OrderView(generics.ListCreateAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
     throttle_classes = [UserRateThrottle, AnonRateThrottle]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DeliveryGroupPermission]
 
     def create(self, request, *args, **kwargs):
         # Get the current user's cart items
