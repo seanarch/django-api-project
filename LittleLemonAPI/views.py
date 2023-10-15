@@ -7,6 +7,7 @@ from .permissions import CanManageMenuItemPermission, DeliveryGroupPermission
 from .models import MenuItem, Category, Cart, Order, OrderItem
 from .serializers import MenuItemSerializer, CategorySerializer, UserSerializer, CartSerializer, OrderSerializer, OrderItemSerializer 
 from decimal import Decimal
+from datetime import date
 
  
 class CategoriesView(generics.ListCreateAPIView):
@@ -160,17 +161,19 @@ class OrderView(generics.ListCreateAPIView):
         for cart_item in cart_items:
             order_item = OrderItem(
                 order=order,
-                menuitem=cart_item.menuitem,  # Assuming there's a 'product' field in Cart
-                quantity=cart_item.quantity,  # Assuming there's a 'quantity' field in Cart
+                menuitem=cart_item.menuitem,   
+                quantity=cart_item.quantity,   
+                unit_price=cart_item.unit_price,
+                price=cart_item.price
             )
             order_item.save()
 
             # Calculate the subtotal for this order item and add it to the order total
-            subtotal = cart_item.product.price * cart_item.quantity  # Adjust this based on your model
+            subtotal = cart_item.menuitem.price * cart_item.quantity  # Adjust this based on your model
             order_total += subtotal
 
         # Set the calculated order total
-        order.total = order_total
+        order.total = order_total 
         order.save()
 
         # Delete all cart items
