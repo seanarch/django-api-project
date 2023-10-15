@@ -182,5 +182,12 @@ class OrderView(generics.ListCreateAPIView):
         # Serialize the created order and return the response
         serializer = OrderSerializer(order)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+class SingleOrderView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Order.objects.filter()
+    serializer_class = OrderSerializer
+    throttle_classes = [UserRateThrottle] 
+
+    permission_classes = [CanManageMenuItemPermission]    
 
  
