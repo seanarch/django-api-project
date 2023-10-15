@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User 
+from datetime import date
 
 # Create your models here.
 class Category(models.Model): 
@@ -27,7 +28,7 @@ class Order(models.Model):
     delivery_crew = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="deliver_crew", null=True)
     status = models.BooleanField(db_index=True, default=0) 
     total = models.DecimalField(max_digits=6, decimal_places=2, null=True) 
-    date = models.DateField(db_index=True, null=True) 
+    date = models.DateField(default=date.today)
 
 class OrderItem(models.Model): 
     order = models.ForeignKey(Order, on_delete=models.CASCADE) 
