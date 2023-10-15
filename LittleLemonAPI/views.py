@@ -1,11 +1,12 @@
-from rest_framework import generics, status
+from rest_framework import generics, status, serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
 from django.contrib.auth.models import User, Group
 from .permissions import CanManageMenuItemPermission, DeliveryGroupPermission
-from .models import MenuItem, Category, Cart
-from .serializers import MenuItemSerializer, CategorySerializer, UserSerializer, CartSerializer 
+from .models import MenuItem, Category, Cart, Order, OrderItem
+from .serializers import MenuItemSerializer, CategorySerializer, UserSerializer, CartSerializer, OrderSerializer, OrderItemSerializer 
+from decimal import Decimal
 
  
 class CategoriesView(generics.ListCreateAPIView):
@@ -87,12 +88,46 @@ class SingleDeliveryUsersView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserSerializer
     throttle_classes = [UserRateThrottle] 
     permission_classes = [DeliveryGroupPermission]
+ 
 
-class CartView(generics.ListCreateAPIView, generics.DestroyAPIView): 
-    queryset = Cart.objects.all() 
-    serializer_class = CartSerializer 
-    throttle_classes = [UserRateThrottle, AnonRateThrottle] 
-    permission_classes = [IsAuthenticated] 
+class CartView(generics.ListCreateAPIView, generics.DestroyAPIView):
+    queryset = Cart.objects.all()
+    serializer_class = CartSerializer
+    throttle_classes = [UserRateThrottle, AnonRateThrottle]
+    permission_classes = [IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        menuitem_id = request.data.get('menuitem_id')
+        if isinstance(menuitem_id, tuple):
+            # If it's a tuple, access the first element (assuming it's the desired value)
+            menuitem_id = menuitem_id[0]
+        quantity = request.data.get('quantity', 1)  # Default to 1 if quantity is not provided
+
+        if not request.user.is_authenticated:
+            raise serializers.ValidationError("User must be authenticated to create a cart item")
+
+        user = request.user
+
+        try:
+            menuitem = MenuItem.objects.get(pk=menuitem_id)
+            unit_price = menuitem.price
+            price = unit_price * Decimal(quantity)  # Calculate the price based on unit price and quantity
+        except MenuItem.DoesNotExist:
+            unit_price = 0
+            price = 0
+
+        cart_data = {
+            'user_id': user.id,
+            'menuitem_id': menuitem_id,
+            'unit_price': unit_price,
+            'price': price,
+            'quantity': quantity,
+        }
+
+        cart_item = Cart.objects.create(**cart_data)
+
+        # Return a response indicating the item was created successfully
+        return Response(CartSerializer(cart_item).data, status=status.HTTP_201_CREATED)
 
     def destroy(self, request, *args, **kwargs):
         # Handle DELETE request to delete all cart items created by the current user
@@ -101,3 +136,48 @@ class CartView(generics.ListCreateAPIView, generics.DestroyAPIView):
 
     def get_object(self):
         return Cart.objects.filter(user=self.request.user)
+ 
+
+class OrderView(generics.ListCreateAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    throttle_classes = [UserRateThrottle, AnonRateThrottle]
+    permission_classes = [IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        # Get the current user's cart items
+        cart_items = Cart.objects.filter(user=request.user)
+
+        if not cart_items.exists():
+            return Response("Cart is empty.", status=status.HTTP_400_BAD_REQUEST)
+
+        # Create a new order
+        order = Order.objects.create(user=request.user)
+
+        order_total = 0  # Initialize the order total
+
+        # Add cart items to the order items table and calculate the total
+        for cart_item in cart_items:
+            order_item = OrderItem(
+                order=order,
+                menuitem=cart_item.menuitem,  # Assuming there's a 'product' field in Cart
+                quantity=cart_item.quantity,  # Assuming there's a 'quantity' field in Cart
+            )
+            order_item.save()
+
+            # Calculate the subtotal for this order item and add it to the order total
+            subtotal = cart_item.product.price * cart_item.quantity  # Adjust this based on your model
+            order_total += subtotal
+
+        # Set the calculated order total
+        order.total = order_total
+        order.save()
+
+        # Delete all cart items
+        cart_items.delete()
+
+        # Serialize the created order and return the response
+        serializer = OrderSerializer(order)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+ 

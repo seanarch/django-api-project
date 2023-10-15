@@ -1,5 +1,5 @@
 from rest_framework import serializers 
-from .models import MenuItem, Category, Cart  
+from .models import MenuItem, Category, Cart, Order, OrderItem 
 from django.contrib.auth.models import User
 
 class CategorySerializer(serializers.ModelSerializer): 
@@ -24,34 +24,32 @@ class CartSerializer(serializers.ModelSerializer):
     user_id = serializers.IntegerField(read_only=True)
     menuitem_id = serializers.IntegerField()
     unit_price = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
-    price = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)  # Add price field
+    price = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
+    quantity = serializers.IntegerField()  
 
     class Meta:
         model = Cart
-        fields = ['user_id', 'menuitem_id', 'unit_price', 'price']
+        fields = ['user_id', 'menuitem_id', 'unit_price', 'price', 'quantity']  
 
-    def create(self, validated_data): 
-        menuitem_id = validated_data.get('menuitem_id')
-        quantity = validated_data.get('quantity', 1)  # Default to 1 if quantity is not provided
 
-        request = self.context.get("request")
+class OrderSerializer(serializers.ModelSerializer): 
+    user_id = serializers.IntegerField(read_only=True) 
+    delivery_id = serializers.IntegerField(read_only=True) 
+    status = serializers.BooleanField() 
+    total = serializers.DecimalField(max_digits=6, decimal_places=2) 
+    date = serializers.DateField()
 
-        if request and request.user.is_authenticated: 
-            user = request.user
-            validated_data['user_id'] = user.id 
-            try:
-                menuitem = MenuItem.objects.get(pk=menuitem_id)
-                unit_price = menuitem.price
-                price = unit_price * quantity  # Calculate the price based on unit price and quantity
-            except MenuItem.DoesNotExist:
-                unit_price = 0
-                price = 0
+    class Meta: 
+        model = Order 
+        fields = ['user_id', 'delivery_id', 'status', 'unit_price', 'price']
 
-            validated_data['unit_price'] = unit_price
-            validated_data['price'] = price
+class OrderItemSerializer(serializers.ModelSerializer): 
+    order_id = serializers.IntegerField(read_only=True)
+    menuitem_id = serializers.IntegerField() 
+    quantity = serializers.IntegerField() 
+    unit_price = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
+    price = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
 
-            return super(CartSerializer, self).create(validated_data)
-        else: 
-            raise serializers.ValidationError("User must be authenticated to create a cart item")
-
- 
+    class Meta: 
+        model = OrderItem 
+        fields = ['order_id', 'menuitem_id', 'quantity', 'unit_price', 'price']
